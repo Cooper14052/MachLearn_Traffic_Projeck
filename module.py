@@ -8,7 +8,7 @@ import math
 
 def create_file():
     """Метод создаёт файл для результатов."""
-    with open('res.csv', 'w', newline='') as f:
+    with open('res.csv', 'a', newline='') as f:
         writer = csv.writer(f, delimiter=';')
         writer.writerow(['NAME_PROT',
                          'TIME_PERIOD',
@@ -26,9 +26,13 @@ def create_file():
                          ])
         f.close()
 
-def add_to_file(file_name, period, biat_res,fiat_res, flowiat, len_psec_res, rows_res):
-    print(f'{file_name,period,biat_res,fiat_res, flowiat, len_psec_res, rows_res}')
-
+def add_to_file(file_name, period, biat_res,fiat_res, flowiat):
+    try:
+        with open('res.csv', 'a', newline='') as f:
+            writer = csv.writer(f, delimiter=';')
+            writer.writerow([file_name.replace('csv', ''),period,biat_res[0],biat_res[1],biat_res[2],fiat_res[0],fiat_res[1],fiat_res[2], flowiat[0],flowiat[1],flowiat[2]])
+    except:
+        pass
 
 def len_per_sec(len_list, time_list):
     """Метод считает кол-во байт в секунду"""
@@ -119,14 +123,12 @@ def flowait(time_list):
 
 
 
-def split_traffic(f_name, s_name):
+def split_traffic(f_name):
     """Функция деления на потоки по 15 секунд."""
     file_name = f_name
-    sheet_name = s_name
 
-    read_file = pd.read_excel(f'{file_name}', sheet_name=f'{sheet_name}')  # Чтение файла
+    read_file = pd.read_csv(file_name, sep=',')
     range_count = len(read_file)
-    split_time = math.ceil(range_count / 15)
 
     before_time = 0  # С данного значения времени начинается поток
     then_time = 15  # До этого значения времени фильтрауется поток
@@ -140,18 +142,18 @@ def split_traffic(f_name, s_name):
 
         for count in range(n1, range_count):
             if read_file.time_unix[next_time_unix] - read_file.time_unix[0] <= then_time and read_file.time_unix[next_time_unix] - read_file.time_unix[0] >= before_time and read_file.src[next_time_unix] in ('205.188.12.91', '10.8.8.178'):
-                print(read_file.Num[next_time_unix], end=' ')
+                #print(read_file.Num[next_time_unix], end=' ')
                 time = read_file.time_unix[next_time_unix] - read_file.time_unix[0]
-                print('[time]', time, end=' ')
+                #print('[time]', time, end=' ')
                 time_list.append(time)
                 src = read_file.src[next_time_unix]
-                print('[src]', src, end=' ')
+                #print('[src]', src, end=' ')
                 src_list.append(src)
-                print('[sport]', read_file.sport[next_time_unix], end=' ')
-                print('[dst]', read_file.dst[next_time_unix], end=' ')
-                print('[dport]', read_file.dport[next_time_unix], end=' ')
+                #print('[sport]', read_file.sport[next_time_unix], end=' ')
+                #print('[dst]', read_file.dst[next_time_unix], end=' ')
+                #print('[dport]', read_file.dport[next_time_unix], end=' ')
                 len_pac = read_file.len[next_time_unix]
-                print('[len]', len_pac, end='\n')
+                #print('[len]', len_pac, end='\n')
                 len_list.append(len_pac)
 
             next_time_unix += 1
@@ -163,7 +165,8 @@ def split_traffic(f_name, s_name):
         flowiat = flowait(time_list)
         len_ps = len_per_sec(len_list, time_list)
         pac_ps = pac_per_sec(read_file, time_list)
-        print(file_name.replace('.xlsx', ''), period, '[biat]',biat_res,'[fiat]',fiat_res, '[flowiat]',flowiat, '[len_ps]',len_ps, '[pac_ps]',pac_ps)
+        print(file_name.replace('.csv', ''), period, '[biat]',biat_res,'[fiat]',fiat_res, '[flowiat]',flowiat, '[len_ps]',len_ps, '[pac_ps]',pac_ps)
+        add_to_file(file_name, period, biat_res,fiat_res, flowiat)
 
         before_time += 15
         then_time += 15
