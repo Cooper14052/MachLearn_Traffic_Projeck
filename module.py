@@ -25,20 +25,18 @@ def create_file():
                          'FP_PER_SEC'
                          ])
         f.close()
-
-def add_to_file(file_name, period, biat_res,fiat_res, flowiat):
-    try:
-        with open('res.csv', 'a', newline='') as f:
-            writer = csv.writer(f, delimiter=';')
-            writer.writerow([file_name.replace('csv', ''),period,biat_res[0],biat_res[1],biat_res[2],fiat_res[0],fiat_res[1],fiat_res[2], flowiat[0],flowiat[1],flowiat[2]])
-    except:
-        pass
-
 def len_per_sec(len_list, time_list):
     """Метод считает кол-во байт в секунду"""
     sum_len = sum(len_list)
     len_psec_res = sum_len / time_list[-1]
     return len_psec_res
+def add_to_file(file_name,period,biat_res,fiat_res,flowiat,len_ps,pac_ps):
+    try:
+        with open('res.csv', 'a', newline='') as f:
+            writer = csv.writer(f, delimiter=';')
+            writer.writerow([file_name.replace('csv', ''),period,biat_res[0],biat_res[1],biat_res[2],fiat_res[0],fiat_res[1],fiat_res[2], flowiat[0],flowiat[1],flowiat[2],len_ps,pac_ps])
+    except:
+        pass
 
 
 def pac_per_sec(read_file, time_list):
@@ -130,6 +128,16 @@ def split_traffic(f_name):
     read_file = pd.read_csv(file_name, sep=',')
     range_count = len(read_file)
 
+    #Столбец со всеми ip по уменьшению
+    series_ip = read_file['src'].value_counts()
+
+    #Определение первого ip
+    first_host_ip = series_ip.index[0]
+    first_host_ip = str(first_host_ip)
+    #Определение второго ip
+    second_user_ip = series_ip.index[1]
+    second_user_ip = str(second_user_ip)
+
     before_time = 0  # С данного значения времени начинается поток
     then_time = 15  # До этого значения времени фильтрауется поток
     while True:
@@ -141,19 +149,13 @@ def split_traffic(f_name):
         len_list = []
 
         for count in range(n1, range_count):
-            if read_file.time_unix[next_time_unix] - read_file.time_unix[0] <= then_time and read_file.time_unix[next_time_unix] - read_file.time_unix[0] >= before_time and read_file.src[next_time_unix] in ('205.188.12.91', '10.8.8.178'):
-                #print(read_file.Num[next_time_unix], end=' ')
+
+            if read_file.time_unix[next_time_unix] - read_file.time_unix[0] <= then_time and read_file.time_unix[next_time_unix] - read_file.time_unix[0] >= before_time and read_file.src[next_time_unix] in (first_host_ip, second_user_ip):
                 time = read_file.time_unix[next_time_unix] - read_file.time_unix[0]
-                #print('[time]', time, end=' ')
                 time_list.append(time)
                 src = read_file.src[next_time_unix]
-                #print('[src]', src, end=' ')
                 src_list.append(src)
-                #print('[sport]', read_file.sport[next_time_unix], end=' ')
-                #print('[dst]', read_file.dst[next_time_unix], end=' ')
-                #print('[dport]', read_file.dport[next_time_unix], end=' ')
                 len_pac = read_file.len[next_time_unix]
-                #print('[len]', len_pac, end='\n')
                 len_list.append(len_pac)
 
             next_time_unix += 1
@@ -166,9 +168,8 @@ def split_traffic(f_name):
         len_ps = len_per_sec(len_list, time_list)
         pac_ps = pac_per_sec(read_file, time_list)
         print(file_name.replace('.csv', ''), period, '[biat]',biat_res,'[fiat]',fiat_res, '[flowiat]',flowiat, '[len_ps]',len_ps, '[pac_ps]',pac_ps)
-        add_to_file(file_name, period, biat_res,fiat_res, flowiat)
+        add_to_file(file_name, period, biat_res,fiat_res, flowiat, len_ps, pac_ps)
 
         before_time += 15
         then_time += 15
         n1 += len(time_list) + 1
-        print('-' * 100)
